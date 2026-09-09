@@ -19,16 +19,38 @@ and this project follows Semantic Versioning while the API is still evolving.
   - chi-square test of independence
   - Fisher’s exact test
   - p-value adjustment methods
+- New tests:
+  - Pearson correlation (`PearsonCorrelation`)
+  - Spearman rank correlation (`SpearmanCorrelation`)
+  - Kruskal-Wallis test (`KruskalWallis`)
+  - one-sample and two-sample proportion z-tests (`ProportionOneSample`, `ProportionTwoSample`)
+  - chi-square goodness-of-fit test (`ChiSquareGoodnessOfFit`)
+  - Levene's test for equal variances, Brown-Forsythe formulation (`LevenesTest`)
+  - Shapiro-Wilk normality test (`ShapiroWilk`), via Royston's algorithm AS R94
+  - Tukey HSD post-hoc pairwise comparisons following `OneWayANOVA` (`TukeyHSD`)
+  - Dunn's post-hoc pairwise comparisons following `KruskalWallis` (`DunnTest`)
+  - a from-scratch, numerically-integrated studentized range distribution
+    (`studentizedRangeCDF`/`studentizedRangeQuantile`), needed for `TukeyHSD`
+    since neither the Go standard library nor gonum provide one
+- Reference-value tests for all newly added methods, checked against SciPy, statsmodels, and scikit-posthocs.
+- Runnable `Example*` functions for every exported test function, attached to their documentation on pkg.go.dev, plus an unqualified package-level `Example()`.
 
 ### Changed
 - Improved statistical verification by checking implementation outputs against external reference values and documented package conventions.
 - Updated convention-sensitive reference tests for:
   - Mann-Whitney U asymptotic p-value behavior
   - Wilcoxon signed-rank statistic reporting convention (`W+`)
+- Moved `Example*` functions from the separate `examples/` package into the root package's test files so they render inline on pkg.go.dev.
+- Lowered the minimum Go version from 1.25.1 to 1.21, and gonum from v0.17.0 to v0.15.0 (the newest release that still supports Go 1.21). Nothing in this package needs a newer toolchain; the previous minimum was an unnecessary adoption barrier.
+
+### Removed
+- Unused, duplicate validation helpers in `validate.go` (superseded by the helpers already used in `helpers.go`).
 
 ### Notes
 - Reference tests now distinguish between “implemented” and “verified.”
 - Some methods use package-specific reporting conventions where multiple valid statistical conventions exist.
+- `ProportionOneSample` and `ProportionTwoSample` use the null-hypothesis (score-test) standard error, i.e. `se = sqrt(p0*(1-p0)/n)`, matching R's `prop.test` rather than a Wald test built from the sample proportion's variance.
+- `LevenesTest` uses the Brown-Forsythe formulation (deviations from the group median), matching SciPy's default (`center='median'`), rather than the original Levene formulation (deviations from the group mean).
 
 ## [0.1.0] - 2026-04-14
 

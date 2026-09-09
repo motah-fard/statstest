@@ -128,3 +128,123 @@ type OneWayANOVAResult struct {
 	EtaSquared float64
 	Method     string
 }
+
+// KruskalWallisResult contains the result of a Kruskal-Wallis H test.
+type KruskalWallisResult struct {
+	H      float64
+	PValue float64
+	DF     int
+	Method string
+}
+
+// PairwiseComparison contains one pairwise group comparison from a
+// post-hoc test such as TukeyHSD. GroupI and GroupJ are indices into the
+// groups passed to the test.
+type PairwiseComparison struct {
+	GroupI    int
+	GroupJ    int
+	MeanDiff  float64
+	Statistic float64
+	PValue    float64
+	CI        ConfidenceInterval
+}
+
+// TukeyHSDResult contains the result of Tukey's Honestly Significant
+// Difference post-hoc test.
+type TukeyHSDResult struct {
+	Comparisons []PairwiseComparison
+	Method      string
+}
+
+// DunnComparison contains one pairwise group comparison from Dunn's test.
+// GroupI and GroupJ are indices into the groups passed to the test.
+type DunnComparison struct {
+	GroupI         int
+	GroupJ         int
+	Statistic      float64
+	PValue         float64
+	AdjustedPValue float64
+}
+
+// DunnTestResult contains the result of Dunn's post-hoc test.
+type DunnTestResult struct {
+	Comparisons  []DunnComparison
+	AdjustMethod PAdjustMethod
+	Method       string
+}
+
+// ChiSquareGoodnessOfFitResult contains the result of a chi-square
+// goodness-of-fit test.
+type ChiSquareGoodnessOfFitResult struct {
+	Statistic float64
+	PValue    float64
+	DF        int
+	Expected  []float64
+	Method    string
+}
+
+// LeveneResult contains the result of Levene's test for equality of
+// variances.
+type LeveneResult struct {
+	Statistic float64
+	PValue    float64
+	DFBetween int
+	DFWithin  int
+	Method    string
+}
+
+// ShapiroWilkResult contains the result of the Shapiro-Wilk normality
+// test.
+type ShapiroWilkResult struct {
+	W      float64
+	PValue float64
+	Method string
+}
+
+// CorrelationResult contains the result of a correlation test.
+type CorrelationResult struct {
+	R           float64
+	PValue      float64
+	DF          float64
+	N           int
+	CI          ConfidenceInterval
+	Method      string
+	Alternative Alternative
+}
+
+// ProportionOneSampleOptions configures a one-sample proportion test.
+type ProportionOneSampleOptions struct {
+	Alternative             Alternative
+	ConfidenceLevel         float64
+	UseContinuityCorrection bool
+}
+
+// ProportionTwoSampleOptions configures a two-sample proportion test.
+type ProportionTwoSampleOptions struct {
+	Alternative             Alternative
+	ConfidenceLevel         float64
+	UseContinuityCorrection bool
+}
+
+// ProportionResult contains the result of a one-sample proportion test.
+type ProportionResult struct {
+	Proportion  float64
+	NullValue   float64
+	Statistic   float64
+	PValue      float64
+	CI          ConfidenceInterval
+	Method      string
+	Alternative Alternative
+}
+
+// ProportionTwoSampleResult contains the result of a two-sample proportion test.
+type ProportionTwoSampleResult struct {
+	Proportion1 float64
+	Proportion2 float64
+	Diff        float64
+	Statistic   float64
+	PValue      float64
+	CI          ConfidenceInterval
+	Method      string
+	Alternative Alternative
+}

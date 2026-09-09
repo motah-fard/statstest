@@ -2,6 +2,7 @@ package statstest
 
 import (
 	"math"
+	"sort"
 
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -63,6 +64,17 @@ func sampleVariance(x []float64) float64 {
 
 func sampleStdDev(x []float64) float64 {
 	return math.Sqrt(sampleVariance(x))
+}
+
+func median(x []float64) float64 {
+	sorted := append([]float64(nil), x...)
+	sort.Float64s(sorted)
+
+	n := len(sorted)
+	if n%2 == 1 {
+		return sorted[n/2]
+	}
+	return (sorted[n/2-1] + sorted[n/2]) / 2
 }
 
 func pooledVariance(x, y []float64) float64 {
@@ -134,6 +146,16 @@ func normalPValue(z float64, alt Alternative) float64 {
 	default:
 		return math.NaN()
 	}
+}
+
+func validateCount(x, n int) error {
+	if n <= 0 {
+		return ErrSampleTooSmall
+	}
+	if x < 0 || x > n {
+		return ErrInvalidCount
+	}
+	return nil
 }
 
 func validateContingencyTable(observed [][]int) error {

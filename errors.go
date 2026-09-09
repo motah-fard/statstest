@@ -18,4 +18,8 @@ var (
 	ErrZeroVariance           = errors.New("variance must be greater than zero")
 	ErrTooFewGroups           = errors.New("at least two groups are required")
 	ErrInsufficientDF         = errors.New("insufficient degrees of freedom")
+	ErrInvalidProportion      = errors.New("proportion must be in (0, 1)")
+	ErrInvalidCount           = errors.New("count must be between 0 and the number of trials")
+	ErrInvalidExpectedCounts  = errors.New("expected counts must be positive")
+	ErrSampleTooLarge         = errors.New("sample size is too large")
 )
