@@ -1,6 +1,9 @@
 package statstest
 
-import "math"
+import (
+	"context"
+	"math"
+)
 
 // TukeyHSD performs Tukey's Honestly Significant Difference test: a
 // post-hoc pairwise comparison of group means, typically run after a
@@ -9,7 +12,26 @@ import "math"
 // Every pair of groups is compared using the Tukey-Kramer method, which
 // handles unequal group sizes. conf is the simultaneous (family-wise)
 // confidence level applied to every reported interval.
+//
+// This is equivalent to calling TukeyHSDContext with context.Background().
+// For a large number of groups the comparison loop can take tens to
+// hundreds of milliseconds (each pair requires a numerical integration);
+// callers on a deadline — e.g. serving an HTTP request — should use
+// TukeyHSDContext instead so the work can be abandoned if the caller goes
+// away.
 func TukeyHSD(conf float64, groups ...[]float64) (TukeyHSDResult, error) {
+	return TukeyHSDContext(context.Background(), conf, groups...)
+}
+
+// TukeyHSDContext is TukeyHSD with cancellation support. If ctx is done
+// before the comparisons finish, it returns a zero TukeyHSDResult and
+// ctx.Err() — comparisons already computed for in-flight goroutines are
+// discarded rather than returned partially, since a partial result could
+// be mistaken for a complete one.
+func TukeyHSDContext(ctx context.Context, conf float64, groups ...[]float64) (TukeyHSDResult, error) {
+	if err := ctx.Err(); err != nil {
+		return TukeyHSDResult{}, err
+	}
 	if len(groups) < 2 {
 		return TukeyHSDResult{}, ErrTooFewGroups
 	}
@@ -60,7 +82,7 @@ func TukeyHSD(conf float64, groups ...[]float64) (TukeyHSDResult, error) {
 	// enough groups this is worth spreading across goroutines rather than
 	// computing pair by pair.
 	comparisons := make([]PairwiseComparison, len(pairs))
-	parallelComputeEach(len(pairs), func(idx int) {
+	err := parallelComputeEachContext(ctx, len(pairs), func(idx int) {
 		i, j := pairs[idx].i, pairs[idx].j
 		se := math.Sqrt(msWithin / 2 * (1/float64(len(groups[i])) + 1/float64(len(groups[j]))))
 		diff := means[i] - means[j]
@@ -80,6 +102,9 @@ func TukeyHSD(conf float64, groups ...[]float64) (TukeyHSDResult, error) {
 			},
 		}
 	})
+	if err != nil {
+		return TukeyHSDResult{}, err
+	}
 
 	return TukeyHSDResult{
 		Comparisons: comparisons,

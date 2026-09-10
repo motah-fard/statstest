@@ -111,6 +111,21 @@ the API, no opt-in required. Everything else in the package runs in
 microseconds and is left sequential, since goroutine overhead would cost
 more than it saves.
 
+For a large number of groups this loop can take tens to hundreds of
+milliseconds, so `TukeyHSDContext(ctx, conf, groups...)` is also available
+for callers on a deadline (an HTTP handler, for example) who want the
+work abandoned if the caller goes away:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+defer cancel()
+
+res, err := statstest.TukeyHSDContext(ctx, 0.95, groups...)
+if errors.Is(err, context.DeadlineExceeded) {
+    // aborted before finishing; res is the zero value
+}
+```
+
 ## Verification
 
 This package includes reference-value tests for core statistical methods.

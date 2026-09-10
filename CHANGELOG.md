@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project follows Semantic Versioning while the API is still evolving.
 
+## [Unreleased]
+
+### Added
+- `TukeyHSDContext(ctx, conf, groups...)`: a context-aware variant of
+  `TukeyHSD` for callers on a deadline (e.g. an HTTP handler). It checks
+  `ctx` before starting and stops dispatching further pairwise
+  comparisons as soon as `ctx` is done, returning a zero `TukeyHSDResult`
+  and `ctx.Err()` rather than a partial result that could be mistaken for
+  a complete one. `TukeyHSD` is now a thin wrapper around it using
+  `context.Background()`, so its behavior is unchanged.
+- Benchmarked `ShapiroWilk` at its largest supported size (n=5000, ~0.3ms)
+  and `DunnTest` at k=20 groups (~0.08ms) before deciding cancellation
+  support wasn't worth adding there — both finish far too fast for it to
+  matter. `TukeyHSD` remains the only function in the package where a
+  caller-driven timeout is a real concern (tens to hundreds of ms at
+  larger group counts).
+
 ## [0.2.1] - 2026-09-10
 
 ### Added

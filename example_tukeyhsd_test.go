@@ -1,7 +1,9 @@
 package statstest_test
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/motah-fard/statstest"
 )
@@ -25,4 +27,28 @@ func ExampleTukeyHSD() {
 
 	// Output:
 	// group 0 vs 1: diff = -0.800, p = 3.55e-06, CI = [-1.045, -0.555]
+}
+
+// ExampleTukeyHSDContext shows how to bound TukeyHSD with a deadline, for
+// example inside an HTTP handler where the work should be abandoned if
+// the caller goes away. With enough groups, the pairwise comparison loop
+// can take tens to hundreds of milliseconds.
+func ExampleTukeyHSDContext() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	g1 := []float64{8.1, 8.3, 7.9, 8.0, 8.2}
+	g2 := []float64{8.8, 9.0, 8.7, 8.9, 9.1}
+	g3 := []float64{7.5, 7.6, 7.4, 7.7, 7.5}
+
+	res, err := statstest.TukeyHSDContext(ctx, 0.95, g1, g2, g3)
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
+
+	fmt.Printf("ran %d comparisons\n", len(res.Comparisons))
+
+	// Output:
+	// ran 3 comparisons
 }
