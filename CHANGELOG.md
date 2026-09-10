@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project follows Semantic Versioning while the API is still evolving.
 
-## [Unreleased]
+## [0.3.0] - 2026-09-10
 
 ### Added
 - Committed, permanent benchmarks (`benchmark_test.go`) for every
