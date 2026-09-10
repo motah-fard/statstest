@@ -102,6 +102,15 @@ directly onto their equivalents:
 - effect sizes (Cohen's d, Hedges' g) and confidence intervals
 - input validation for invalid samples, counts, and tables
 
+## Performance
+
+`TukeyHSD`'s pairwise comparisons are independent of one another and each
+requires a numerical integration, so for enough groups they're computed
+concurrently across goroutines instead of one at a time — no change to
+the API, no opt-in required. Everything else in the package runs in
+microseconds and is left sequential, since goroutine overhead would cost
+more than it saves.
+
 ## Verification
 
 This package includes reference-value tests for core statistical methods.

@@ -8,6 +8,20 @@ and this project follows Semantic Versioning while the API is still evolving.
 ## [Unreleased]
 
 ### Added
+- Parallelized `TukeyHSD`'s pairwise comparison loop: each comparison's
+  p-value requires a numerical integration (`studentizedRangeCDF`) that is
+  independent of every other pair, so for enough groups this is now
+  spread across goroutines (bounded by `GOMAXPROCS`) instead of computed
+  one pair at a time. Benchmarked at k=10 groups (45 pairs): ~81ms → ~57ms;
+  the gain grows with group count since the parallelized part dominates
+  more of the total time. `DunnTest`'s pairwise loop was deliberately left
+  sequential — its per-pair cost is a closed-form normal-CDF evaluation,
+  cheap enough that parallelizing it would add complexity with no
+  measurable payoff.
+
+## [0.2.0] - 2026-09-09
+
+### Added
 - Reference-value verification tests for core statistical methods.
 - Verified test coverage for:
   - one-sample t-test

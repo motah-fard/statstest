@@ -47,28 +47,39 @@ func TukeyHSD(conf float64, groups ...[]float64) (TukeyHSDResult, error) {
 
 	qCrit := studentizedRangeQuantile(conf, k, float64(dfWithin))
 
-	var comparisons []PairwiseComparison
+	type pairIndex struct{ i, j int }
+	pairs := make([]pairIndex, 0, k*(k-1)/2)
 	for i := 0; i < k; i++ {
 		for j := i + 1; j < k; j++ {
-			se := math.Sqrt(msWithin / 2 * (1/float64(len(groups[i])) + 1/float64(len(groups[j]))))
-			diff := means[i] - means[j]
-			q := math.Abs(diff) / se
-			p := 1 - studentizedRangeCDF(q, k, float64(dfWithin))
-
-			comparisons = append(comparisons, PairwiseComparison{
-				GroupI:    i,
-				GroupJ:    j,
-				MeanDiff:  diff,
-				Statistic: q,
-				PValue:    p,
-				CI: ConfidenceInterval{
-					Level: conf,
-					Low:   diff - qCrit*se,
-					High:  diff + qCrit*se,
-				},
-			})
+			pairs = append(pairs, pairIndex{i, j})
 		}
 	}
+
+	// Each comparison's p-value costs a numerical integration
+	// (studentizedRangeCDF), independent of every other pair, so for
+	// enough groups this is worth spreading across goroutines rather than
+	// computing pair by pair.
+	comparisons := make([]PairwiseComparison, len(pairs))
+	parallelComputeEach(len(pairs), func(idx int) {
+		i, j := pairs[idx].i, pairs[idx].j
+		se := math.Sqrt(msWithin / 2 * (1/float64(len(groups[i])) + 1/float64(len(groups[j]))))
+		diff := means[i] - means[j]
+		q := math.Abs(diff) / se
+		p := 1 - studentizedRangeCDF(q, k, float64(dfWithin))
+
+		comparisons[idx] = PairwiseComparison{
+			GroupI:    i,
+			GroupJ:    j,
+			MeanDiff:  diff,
+			Statistic: q,
+			PValue:    p,
+			CI: ConfidenceInterval{
+				Level: conf,
+				Low:   diff - qCrit*se,
+				High:  diff + qCrit*se,
+			},
+		}
+	})
 
 	return TukeyHSDResult{
 		Comparisons: comparisons,
@@ -119,6 +130,10 @@ func DunnTest(method PAdjustMethod, groups ...[]float64) (DunnTestResult, error)
 		rankMeans[gi] = sum / float64(len(g))
 	}
 
+	// Unlike TukeyHSD, each pairwise comparison here is a closed-form
+	// normal-CDF evaluation rather than a numerical integration, so it is
+	// cheap enough that parallelizing this loop would add complexity
+	// without a measurable speedup.
 	var comparisons []DunnComparison
 	var rawP []float64
 	for i := 0; i < len(groups); i++ {
