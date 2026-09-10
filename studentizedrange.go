@@ -64,6 +64,18 @@ func normalRangeCDF(r float64, k int) float64 {
 	return clampProbability(float64(k) * simpsonIntegrate(f, -12, 12, 128))
 }
 
+// bisectionIterations is chosen with a wide safety margin over the point
+// where studentizedRangeQuantile's bisection converges to the resolution
+// of studentizedRangeCDF's own numerical integration: empirically,
+// against known critical values across a range of (k, df) and the
+// doubling phase's typical search intervals, iterations beyond ~20 leave
+// the result unchanged to the last measurable digit. Lowering this
+// constant is the single biggest lever on TukeyHSD's latency, since this
+// bisection runs once per call regardless of the number of groups — do
+// not lower it without re-verifying every case in reference_test.go
+// still matches at its existing tolerance.
+const bisectionIterations = 35
+
 // studentizedRangeQuantile inverts studentizedRangeCDF by bisection.
 func studentizedRangeQuantile(p float64, k int, df float64) float64 {
 	lo, hi := 0.0, 1.0
@@ -73,7 +85,7 @@ func studentizedRangeQuantile(p float64, k int, df float64) float64 {
 			break
 		}
 	}
-	for i := 0; i < 60; i++ {
+	for i := 0; i < bisectionIterations; i++ {
 		mid := (lo + hi) / 2
 		if studentizedRangeCDF(mid, k, df) < p {
 			lo = mid

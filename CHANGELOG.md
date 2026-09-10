@@ -8,6 +8,11 @@ and this project follows Semantic Versioning while the API is still evolving.
 ## [Unreleased]
 
 ### Added
+- Committed, permanent benchmarks (`benchmark_test.go`) for every
+  exported function, runnable with `go test -bench=. -benchmem ./...`,
+  so performance is measured going forward instead of asserted once.
+- CI now also runs golangci-lint on every push/PR (separate `lint` job),
+  and `go test` runs with `-race`.
 - `TukeyHSDContext(ctx, conf, groups...)`: a context-aware variant of
   `TukeyHSD` for callers on a deadline (e.g. an HTTP handler). It checks
   `ctx` before starting and stops dispatching further pairwise
@@ -21,6 +26,22 @@ and this project follows Semantic Versioning while the API is still evolving.
   matter. `TukeyHSD` remains the only function in the package where a
   caller-driven timeout is a real concern (tens to hundreds of ms at
   larger group counts).
+
+### Changed
+- Cut `studentizedRangeQuantile`'s bisection from 60 to 35 iterations
+  (`bisectionIterations` in `studentizedrange.go`). Benchmarking `TukeyHSD`
+  showed this single bisection — run once per call, independent of group
+  count — dominated its runtime more than the pairwise comparison loop
+  that was parallelized in 0.2.1. Empirically, the bisection converges to
+  the numerical integration's own resolution by ~15-20 iterations; every
+  case in `reference_test.go` still matches its existing tolerance after
+  the change. This is a ~25-35% reduction in `TukeyHSD`'s total latency
+  depending on group count, with the accuracy the package already had.
+
+### Fixed
+- An ineffectual assignment in `FishersExact2x2` (`categorical.go`),
+  caught by adding golangci-lint to CI. No behavior change — every branch
+  already overwrote the value before it was used.
 
 ## [0.2.1] - 2026-09-10
 

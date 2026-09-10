@@ -104,17 +104,30 @@ directly onto their equivalents:
 
 ## Performance
 
-`TukeyHSD`'s pairwise comparisons are independent of one another and each
-requires a numerical integration, so for enough groups they're computed
-concurrently across goroutines instead of one at a time — no change to
-the API, no opt-in required. Everything else in the package runs in
-microseconds and is left sequential, since goroutine overhead would cost
-more than it saves.
+Every exported function has a benchmark in `benchmark_test.go` — run them
+yourself with:
 
-For a large number of groups this loop can take tens to hundreds of
-milliseconds, so `TukeyHSDContext(ctx, conf, groups...)` is also available
-for callers on a deadline (an HTTP handler, for example) who want the
-work abandoned if the caller goes away:
+```bash
+go test -bench=. -benchmem ./...
+```
+
+Almost everything in the package runs in single-digit microseconds or
+less. The one function that doesn't is `TukeyHSD`: computing its critical
+value requires inverting a numerically-integrated distribution
+(`studentizedRangeQuantile`), which costs tens of milliseconds on its own
+— and that cost is paid once per call, regardless of how many groups are
+being compared. Benchmarking it is what surfaced that in the first place;
+the pairwise comparisons after it (each also a numerical integration) are
+comparatively small unless the group count is large, which is why they're
+the part that's parallelized across goroutines, not the critical-value
+step. Both were tuned against the package's own reference-value tests
+rather than by feel — see the comments on `bisectionIterations` in
+`studentizedrange.go`.
+
+For a large number of groups the pairwise loop can still add tens to
+hundreds of milliseconds on top, so `TukeyHSDContext(ctx, conf, groups...)`
+is available for callers on a deadline (an HTTP handler, for example) who
+want the work abandoned if the caller goes away:
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)

@@ -134,7 +134,7 @@ func FishersExact2x2(table [2][2]int, alt Alternative) (FishersExactResult, erro
 	num := float64(a * d)
 	den := float64(b * c)
 
-	oddsRatio := math.NaN()
+	var oddsRatio float64
 	switch {
 	case den == 0 && num > 0:
 		oddsRatio = math.Inf(1)
