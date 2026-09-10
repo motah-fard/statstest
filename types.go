@@ -201,6 +201,36 @@ type ShapiroWilkResult struct {
 	Method string
 }
 
+// BootstrapOptions configures a bootstrap confidence interval.
+type BootstrapOptions struct {
+	// NumResamples is the number of bootstrap resamples to draw. At least
+	// 1000 is recommended for a stable percentile confidence interval;
+	// values below 100 are rejected as too few to be meaningful.
+	NumResamples int
+	// ConfidenceLevel is the confidence level for the returned interval,
+	// in (0, 1).
+	ConfidenceLevel float64
+	// Seed makes the resampling reproducible when non-nil: the same
+	// input, statistic, options, and seed always produce the same result,
+	// regardless of GOMAXPROCS or goroutine scheduling. If nil, a seed is
+	// derived from the current time.
+	Seed *int64
+}
+
+// BootstrapResult contains the result of a bootstrap confidence interval.
+type BootstrapResult struct {
+	// Estimate is the statistic evaluated on the original sample (not the
+	// mean of the resampled statistics).
+	Estimate float64
+	// StdError is the standard deviation of the statistic across all
+	// bootstrap resamples.
+	StdError float64
+	// CI is the percentile bootstrap confidence interval.
+	CI           ConfidenceInterval
+	NumResamples int
+	Method       string
+}
+
 // CorrelationResult contains the result of a correlation test.
 type CorrelationResult struct {
 	R           float64

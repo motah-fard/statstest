@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project follows Semantic Versioning while the API is still evolving.
 
+## [Unreleased]
+
+### Added
+- Power analysis and sample-size calculation: `PowerTTestTwoSample`,
+  `SampleSizeTTestTwoSample`, `PowerProportionTwoSample`,
+  `SampleSizeProportionTwoSample`, and `CohensH` (the proportion analogue
+  of Cohen's d, used internally by the proportion power functions). All
+  use the normal approximation to the sampling distribution, matching
+  `statsmodels.stats.power.NormalIndPower` — verified against it to at
+  least 9 significant figures for power and 4 for sample size (sample
+  size is solved by bisection over a closed-form expression, so unlike
+  `TukeyHSD` there's no real cost to using a generous iteration count).
+- `BootstrapCI` / `BootstrapCIContext`: percentile bootstrap confidence
+  intervals for an arbitrary caller-supplied statistic
+  (`func([]float64) float64`), not just the tests this package ships
+  with. Resamples are independent by construction, so — like `TukeyHSD` —
+  they're spread across goroutines via the same worker pool once
+  `NumResamples` is large enough to be worth it. Because the cost is
+  `NumResamples × (caller's statistic cost)`, which this package cannot
+  bound in advance, `BootstrapCIContext` is the one function where using
+  the context-aware variant by default is the right call rather than an
+  edge case. Reproducibility: `BootstrapOptions.Seed`, when set, makes
+  the result identical run to run regardless of goroutine scheduling
+  (each resample gets an independently-derived seed via a splitmix64
+  mix of the base seed and resample index).
+- Bootstrap methods can't be checked against a bit-exact external
+  reference — Go's PRNG doesn't match R's or NumPy's — so they're
+  validated differently: convergence to the classical closed-form CI for
+  the sample mean on a large sample, and a determinism test confirming a
+  fixed seed always reproduces the same result. Documented as an
+  explicit exception to this package's usual reference-value bar, in
+  both `README.md` and the `BootstrapCI` doc comment.
+- Set GitHub repository topics and homepage for discoverability; no code
+  changes.
+
 ## [0.3.0] - 2026-09-10
 
 ### Added

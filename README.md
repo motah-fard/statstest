@@ -53,6 +53,9 @@ directly onto their equivalents:
 | Levene's test (equal variances) | `car::leveneTest()` | `LevenesTest`            |
 | Shapiro-Wilk normality test    | `shapiro.test()`   | `ShapiroWilk`             |
 | Multiple-testing correction    | `p.adjust()`       | `AdjustPValues`           |
+| Power / sample size (t-test)   | `pwr::pwr.t.test()` | `PowerTTestTwoSample`, `SampleSizeTTestTwoSample` |
+| Power / sample size (proportions) | `pwr::pwr.2p.test()` | `PowerProportionTwoSample`, `SampleSizeProportionTwoSample` |
+| Bootstrap confidence interval  | `boot::boot()`      | `BootstrapCI`             |
 
 ## Which test should I use?
 
@@ -80,6 +83,10 @@ directly onto their equivalents:
 
 **Running many tests at once (e.g. many A/B metrics, or post-hoc pairs)?** → adjust the resulting p-values with `AdjustPValues` before deciding what's significant. `TukeyHSD` and `DunnTest` already build this in for their pairwise comparisons.
 
+**Planning a test, not analyzing one yet?** → `SampleSizeTTestTwoSample` / `SampleSizeProportionTwoSample` answer "how many observations do I need?" before you collect data; `PowerTTestTwoSample` / `PowerProportionTwoSample` answer "how likely was I to detect this effect?" after the fact, with the sample size you actually had.
+
+**Need a confidence interval for a statistic with no built-in test** (a custom metric, a ratio, a trimmed mean)? → `BootstrapCI` accepts any `func([]float64) float64` and resamples to build a confidence interval around it, at the cost of not having a closed-form reference value the way the rest of this package's confidence intervals do (see Verification below).
+
 ## Goals
 
 - simple APIs using `[]float64` and standard Go types
@@ -99,7 +106,9 @@ directly onto their equivalents:
 - one-sample and two-sample proportion (z) tests
 - Levene's test for equal variances, Shapiro-Wilk test for normality
 - p-value adjustment (Bonferroni, Holm, Benjamini-Hochberg)
-- effect sizes (Cohen's d, Hedges' g) and confidence intervals
+- effect sizes (Cohen's d, Hedges' g, Cohen's h) and confidence intervals
+- power analysis and sample-size calculation for t-tests and proportion tests
+- percentile bootstrap confidence intervals for arbitrary statistics
 - input validation for invalid samples, counts, and tables
 
 ## Performance
@@ -139,6 +148,14 @@ if errors.Is(err, context.DeadlineExceeded) {
 }
 ```
 
+`BootstrapCI` is concurrent for the same reason: each of its resamples is
+an independent draw, so they're spread across goroutines once there are
+enough of them to be worth it, using the same worker pool as `TukeyHSD`.
+Unlike `TukeyHSD`, its cost is entirely proportional to
+`NumResamples × cost of your statistic function` — since that function is
+caller-supplied and its cost is unknowable, `BootstrapCIContext` is worth
+using by default for anything beyond a quick interactive check.
+
 ## Verification
 
 This package includes reference-value tests for core statistical methods.
@@ -149,6 +166,27 @@ Tukey HSD's underlying studentized range distribution is implemented from
 scratch (via numerical integration, since neither Go's standard library
 nor gonum provide it) and independently verified against
 `scipy.stats.studentized_range`.
+
+`BootstrapCI` is the one exception to "checked against a reference
+value": bootstrap resampling is inherently random, and Go's PRNG doesn't
+produce the same sequence as R's or NumPy's, so there is no bit-exact
+value to check it against. It's validated differently instead — the
+package's tests confirm it converges to the classical closed-form CI for
+the sample mean on a large sample, and that the same seed always
+reproduces the same result regardless of goroutine scheduling.
+
+## Stability
+
+This package is pre-1.0 and versions its API accordingly: a MINOR version
+bump (0.x → 0.(x+1)) means new functions were added; a PATCH bump means
+internal changes only (bug fixes, performance). No function signature or
+result type has been removed or had a field's meaning changed since
+`v0.1.0`. Every statistical method that's landed has shipped with a
+reference-value test from day one — see `CONTRIBUTING.md` — so "new" here
+has meant "additional," not "the old thing was wrong." Reaching v1.0 will
+mean committing to no breaking changes without a major version bump; for
+now, pin a specific version (`go get github.com/motah-fard/statstest@v0.3.0`)
+if that matters for your use case.
 
 ## Installation
 

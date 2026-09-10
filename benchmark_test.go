@@ -184,3 +184,37 @@ func BenchmarkDunnTest(b *testing.B) {
 		})
 	}
 }
+
+func BenchmarkSampleSizeTTestTwoSample(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = SampleSizeTTestTwoSample(0.5, 0.05, 0.8)
+	}
+}
+
+func BenchmarkPowerTTestTwoSample(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = PowerTTestTwoSample(64, 0.5, 0.05)
+	}
+}
+
+// BenchmarkBootstrapCI covers a range of resample counts because, unlike
+// TukeyHSD, its cost is dominated entirely by NumResamples times the
+// caller-supplied statistic's own cost — there's no separate fixed
+// overhead analogous to TukeyHSD's critical-value bisection.
+func BenchmarkBootstrapCI(b *testing.B) {
+	rng := rand.New(rand.NewSource(1))
+	x := benchNormalSample(rng, 100, 0)
+	statistic := func(s []float64) float64 { return mean(s) }
+
+	for _, n := range []int{1000, 10000} {
+		opts := BootstrapOptions{NumResamples: n, ConfidenceLevel: 0.95}
+		b.Run(fmt.Sprintf("resamples=%d", n), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _ = BootstrapCI(x, statistic, opts)
+			}
+		})
+	}
+}

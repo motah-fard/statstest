@@ -22,4 +22,7 @@ var (
 	ErrInvalidCount           = errors.New("count must be between 0 and the number of trials")
 	ErrInvalidExpectedCounts  = errors.New("expected counts must be positive")
 	ErrSampleTooLarge         = errors.New("sample size is too large")
+	ErrZeroEffectSize         = errors.New("effect size must be non-zero")
+	ErrNilStatistic           = errors.New("statistic function must not be nil")
+	ErrTooFewResamples        = errors.New("too few bootstrap resamples")
 )

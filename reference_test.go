@@ -18,6 +18,9 @@
 //   studentized range distribution against scipy.stats.studentized_range.
 // - DunnTest is checked against scikit_posthocs.posthoc_dunn.
 // - ShapiroWilk is checked against scipy.stats.shapiro.
+// - The power/sample-size functions are checked against
+//   statsmodels.stats.power.NormalIndPower, which uses the same
+//   normal-approximation formula implemented here.
 // -----------------------------------------------------------------------------
 
 package statstest
@@ -565,4 +568,64 @@ func TestReferenceShapiroWilk(t *testing.T) {
 		requireAlmostEqual(t, c.name+" W", res.W, c.wantW, 1e-9)
 		requireAlmostEqual(t, c.name+" p-value", res.PValue, c.wantP, 1e-9)
 	}
+}
+
+func TestReferencePowerTTestTwoSample(t *testing.T) {
+	cases := []struct {
+		n         int
+		d, alpha  float64
+		wantPower float64
+	}{
+		{64, 0.5, 0.05, 0.807430419432557},
+		{25, 0.8, 0.05, 0.807430419432557},
+	}
+	for _, c := range cases {
+		got, err := PowerTTestTwoSample(c.n, c.d, c.alpha)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		requireAlmostEqual(t, "power", got, c.wantPower, 1e-9)
+	}
+}
+
+func TestReferenceSampleSizeTTestTwoSample(t *testing.T) {
+	cases := []struct {
+		d, alpha, power float64
+		wantN           float64
+	}{
+		{0.5, 0.05, 0.8, 62.79088416571135},
+		{0.2, 0.05, 0.9, 525.3709705479278},
+		{1.0, 0.01, 0.8, 23.35793629970813},
+	}
+	for _, c := range cases {
+		got, err := SampleSizeTTestTwoSample(c.d, c.alpha, c.power)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		requireAlmostEqual(t, "sample size", got, c.wantN, 1e-4)
+	}
+}
+
+func TestReferenceCohensH(t *testing.T) {
+	got, err := CohensH(0.5, 0.3)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	requireAlmostEqual(t, "h", got, 0.4115168460674883, 1e-9)
+}
+
+func TestReferencePowerProportionTwoSample(t *testing.T) {
+	got, err := PowerProportionTwoSample(50, 0.5, 0.3, 0.05)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	requireAlmostEqual(t, "power", got, 0.5389124796679332, 1e-9)
+}
+
+func TestReferenceSampleSizeProportionTwoSample(t *testing.T) {
+	got, err := SampleSizeProportionTwoSample(0.5, 0.3, 0.05, 0.8)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	requireAlmostEqual(t, "sample size", got, 92.69608121266178, 1e-3)
 }
